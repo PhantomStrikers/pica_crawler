@@ -13,8 +13,7 @@ if not os.path.exists("./zips"):
     os.mkdir('./zips')
 zip_file("./comics", "./zips")
 
-smtpObj = smtplib.SMTP(os.environ["EMAIL_SERVER_HOST"], int(os.environ["EMAIL_SERVER_PORT"]))
-smtpObj.ehlo()
+smtpObj = smtplib.SMTP(os.environ["EMAIL_SERVER_HOST"], os.environ["EMAIL_SERVER_PORT"])
 if os.environ["EMAIL_STARTTLS"] == 'true':
     smtpObj.starttls()
 email_account = os.environ["EMAIL_ACCOUNT"]
