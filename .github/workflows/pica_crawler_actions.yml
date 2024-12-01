@@ -2,8 +2,8 @@ name: pica_crawler
 
 on:
   # 定时触发工作流  需要定时任务则将下面两行代码取消注释
-  #schedule:
-    #- cron: "0 0 * * *"
+  schedule:
+    - cron: "0 22 * * *"
   # 手动触发工作流
   workflow_dispatch:
     # 配置读取优先级为 环境变量 > config.ini > 程序预设的默认值
@@ -13,23 +13,23 @@ on:
       SEND_EMAIL:
         description: '是否发送邮件'
         type: boolean
-        default: false
+        default: True
       COMMIT_AND_UPLOAD:
         description: '是否提交并上传下载记录到仓库'
         type: boolean
-        default: false
+        default: True
       MERGE_EPISODES:
         description: '将同一本漫画的不同章节进行合并'
         type: boolean
-        default: false
+        default: True
       DOWNLOAD_RANKED_COMICS:
         description: '是否下载排行榜漫画'
         type: boolean
-        default: false
+        default: True
       DOWNLOAD_FAVOURITE_COMICS:
         description: '是否下载收藏夹漫画'
         type: boolean
-        default: false
+        default: True
       SPECIFIC_COMICS_IDS:
         description: '根据漫画id指定下载,多个id用逗号分隔'
         type: string
