@@ -88,6 +88,7 @@ class Pica:
         params = urlencode(args)
         url = f"{base}comics/leaderboard?{params}"
         res = self.http_do("GET", url)
+        print(res)
         return json.loads(res.content.decode("utf-8"))["data"]["comics"]
 
     # 获取本子详细信息
