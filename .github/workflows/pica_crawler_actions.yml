@@ -5,6 +5,39 @@ on:
   #schedule:
     #- cron: "0 0 * * *"
   workflow_dispatch:
+    inputs:
+      SEND_EMAIL:
+        description: '是否发送邮件'
+        type: boolean
+        default: false
+      COMMIT_AND_UPLOAD:
+        description: '是否提交并上传下载记录到仓库'
+        type: boolean
+        default: false
+      MERGE_EPISODES:
+        description: '将同一本漫画的不同章节进行合并'
+        type: boolean
+        default: false
+      DOWNLOAD_RANKED_COMICS:
+        description: '是否下载排行榜漫画'
+        type: boolean
+        default: false
+      DOWNLOAD_FAVOURITE_COMICS:
+        description: '是否下载收藏夹漫画'
+        type: boolean
+        default: false
+      SPECIFIC_COMICS_IDS:
+        description: '根据漫画id指定下载,多个id用逗号分隔'
+        type: string
+        default: ''
+      EXPORT_PDF:
+        description: '是否导出为pdf'
+        type: boolean
+        default: false
+      EXPORT_CBZ:
+        description: '是否导出为cbz'
+        type: boolean
+        default: false
 
 jobs:
   main:
@@ -24,6 +57,18 @@ jobs:
           PICA_PASSWORD: ${{secrets.PICA_PASSWORD}}
           # 允许在下载完成后发送自定义消息,为空则不发送 例: https://api.day.app/{your_keys}/picacg下载成功
           BARK_URL: ${{secrets.BARK_URL}}
+          # 是否将同一本漫画的不同章节进行合并
+          MERGE_EPISODES: ${{ inputs.MERGE_EPISODES && 'True' || 'False' }}
+          # 是否下载排行榜
+          DOWNLOAD_RANKED_COMICS: ${{ inputs.DOWNLOAD_RANKED_COMICS && 'True' || 'False' }}
+          # 是否下载收藏夹
+          DOWNLOAD_FAVOURITE_COMICS: ${{ inputs.DOWNLOAD_FAVOURITE_COMICS && 'True' || 'False' }}
+          # 根据漫画id指定下载，为空则不进行指定下载
+          SPECIFIC_COMICS_IDS: ${{ inputs.SPECIFIC_COMICS_IDS }}
+          # 是否导出为pdf
+          EXPORT_PDF: ${{ inputs.EXPORT_PDF && 'True' || 'False' }}
+          # 是否导出为cbz
+          EXPORT_CBZ: ${{ inputs.EXPORT_CBZ && 'True' || 'False' }}
         run: |
           python ./src/main.py
           git add ./data/downloaded.db
@@ -33,10 +78,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pica-comics
-          path: comics/
+          path: |
+            comics/
+            comics_pdf/
+            comics_cbz/
           # 压缩包90天后会被清除
           retention-days: 90
       - name: send email
+        if: ${{ inputs.SEND_EMAIL }}
         env:
           EMAIL_ACCOUNT: ${{secrets.EMAIL_ACCOUNT}}
           EMAIL_AUTH_CODE: ${{secrets.EMAIL_AUTH_CODE}}
@@ -53,6 +102,7 @@ jobs:
           python ./src/sendEmail.py
           echo '如果不需要邮件推送的功能,可以将上一行代码注释掉     首次运行时也建议注释,排行榜上的漫画都没推送过,邮箱接受不了大量的漫画,等首次运行结束后再开启'
       - name: commit & push
+        if : ${{ inputs.COMMIT_AND_UPLOAD }}
         uses: actions-go/push@master
         with:
           author-email: 'actions@github.com'

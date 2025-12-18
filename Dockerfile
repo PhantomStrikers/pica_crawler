@@ -1,5 +1,5 @@
 # 使用官方 Python 3 基础镜像
-FROM python:3.8-slim
+FROM python:3.10-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -15,7 +15,7 @@ ENV PACKAGE_TYPE="False" \
 COPY . /app
 
 # 安装依赖项
-RUN pip install --progress-bar off requests urllib3
+RUN pip install --progress-bar off requests urllib3 pillow
 
 # 指定容器启动时执行的命令
 CMD ["python", "./src/main.py"]
