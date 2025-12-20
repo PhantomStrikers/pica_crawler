@@ -11,7 +11,7 @@ if not os.path.exists("./comics"):
     os.mkdir('./comics')
 if not os.path.exists("./zips"):
     os.mkdir('./zips')
-zip_file("./comics", "./zips")
+split_zip("./comics", "./zips", 'pica')
 
 zips = os.listdir('./zips')
 for i in range(len(os.listdir('./zips'))):

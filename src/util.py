@@ -1,7 +1,9 @@
+import glob
 import operator
 import os
 import random
 import shutil
+import subprocess
 import zipfile
 from configparser import ConfigParser
 from datetime import datetime
@@ -103,6 +105,41 @@ def generate_random_str(str_length=16):
     for i in range(str_length):
         random_str += base_str[random.randint(0, length)]
     return random_str
+
+def split_zip(source_dir, target_dir, output_name, block_size=50):
+    """
+   用7z命令行实现的分卷压缩, git actions工作流中有安装7z的命令
+   """
+    if not block_size:
+        block_size = int(os.environ["EMAIL_ATTACH_SIZE"]) - 1
+    if not os.path.exists(target_dir):
+        os.mkdir(target_dir)
+    #单个压缩包的大小(MB)
+    size_Mbit = block_size * 1024 * 1024
+
+    #切换到源目录调用7z命令行
+    os.chdir(source_dir)
+    cmd = ['7z', 'a', '-tzip', f'-v{size_Mbit}', f'{output_name}.zip', '-r']
+    subprocess.run(cmd, check=True, capture_output=True, text=True)
+    os.chdir('..')
+
+    # 构建搜索模式（不区分大小写）
+    pattern = os.path.join(source_dir, f"{output_name}.zip*")
+    # 查找匹配的文件
+    matched_files = glob.glob(pattern)
+    if not matched_files:
+        return []
+
+    #移动压缩包到target_dir
+    moved_files = []
+    for file_path in matched_files:
+        if os.path.isfile(file_path):
+            filename = os.path.basename(file_path)
+            target_path = os.path.join(target_dir, filename)
+            shutil.move(file_path, target_path)
+            moved_files.append(filename)
+    print(f"\n成功移动 {len(moved_files)} 个文件到 {target_dir}")
+    return moved_files
 
 
 def zip_file(source_dir, target_dir, block_size=None):
@@ -390,8 +427,8 @@ def truncate_string_by_bytes(s, max_bytes):
 def merge_episodes(dir):
     """
     将漫画从各个章节子文件夹中提取出来, 合并到同一目录, 方便连续阅读
-    合并前的目录结构: ./comics/漫画标题/章节名/图片
-    合并后的目录结构: ./comics/漫画标题/图片
+    合并前的目录结构: ./comics/画师名/漫画标题/章节名/图片
+    合并后的目录结构: ./comics/画师名/漫画标题/图片
 
     参数:
     dir (str): 漫画所在文件夹
