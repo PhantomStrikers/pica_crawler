@@ -1,10 +1,14 @@
 name: pica_crawler
 
 on:
-  #将下面两行代码取消注释
+  # 定时触发工作流  需要定时任务则将下面两行代码取消注释
   #schedule:
     #- cron: "0 0 * * *"
+  # 手动触发工作流
   workflow_dispatch:
+    # 配置读取优先级为 环境变量 > config.ini > 程序预设的默认值
+    # 用户在手动触发界面上填入的参数值会写入环境变量, 从而临时修改本次运行的配置, 无需频繁调整config.ini文件
+    # inputs下的变量只在手动触发工作流时生效, 定时触发时取到的是'', 此时又会回退到从config.ini文件取值
     inputs:
       SEND_EMAIL:
         description: '是否发送邮件'
@@ -42,14 +46,18 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
+    env:
+      # 是否发送邮件  如果是定时触发，SEND_EMAIL默认为True；如果是手动触发，则为用户输入值
+      SEND_EMAIL: ${{ github.event_name == 'schedule' && 'True' || (inputs.SEND_EMAIL && 'True' || 'False') }}
+      # 是否提交并上传下载记录到仓库
+      COMMIT_AND_UPLOAD: ${{ github.event_name == 'schedule' && 'True' || (inputs.COMMIT_AND_UPLOAD && 'True' || 'False') }}
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-python@v5.2.0
         with:
           python-version: "3.10"
       - name: install dependency
-        run: |
-          pip install urllib3 requests pillow
+        run: pip install urllib3 requests pillow
       - name: main logic
         env:
           PICA_SECRET_KEY: ${{secrets.PICA_SECRET_KEY}}
@@ -57,18 +65,18 @@ jobs:
           PICA_PASSWORD: ${{secrets.PICA_PASSWORD}}
           # 允许在下载完成后发送自定义消息,为空则不发送 例: https://api.day.app/{your_keys}/picacg下载成功
           BARK_URL: ${{secrets.BARK_URL}}
-          # 是否将同一本漫画的不同章节进行合并
-          MERGE_EPISODES: ${{ inputs.MERGE_EPISODES && 'True' || 'False' }}
+          # 是否将同一本漫画的不同章节进行合并     在定时触发工作流时inputs下的变量为空,此时会从config.ini配置中取值
+          MERGE_EPISODES: ${{ inputs.MERGE_EPISODES }}
           # 是否下载排行榜
-          DOWNLOAD_RANKED_COMICS: ${{ inputs.DOWNLOAD_RANKED_COMICS && 'True' || 'False' }}
+          DOWNLOAD_RANKED_COMICS: ${{ inputs.DOWNLOAD_RANKED_COMICS }}
           # 是否下载收藏夹
-          DOWNLOAD_FAVOURITE_COMICS: ${{ inputs.DOWNLOAD_FAVOURITE_COMICS && 'True' || 'False' }}
+          DOWNLOAD_FAVOURITE_COMICS: ${{ inputs.DOWNLOAD_FAVOURITE_COMICS }}
           # 根据漫画id指定下载，为空则不进行指定下载
           SPECIFIC_COMICS_IDS: ${{ inputs.SPECIFIC_COMICS_IDS }}
           # 是否导出为pdf
-          EXPORT_PDF: ${{ inputs.EXPORT_PDF && 'True' || 'False' }}
+          EXPORT_PDF: ${{ inputs.EXPORT_PDF }}
           # 是否导出为cbz
-          EXPORT_CBZ: ${{ inputs.EXPORT_CBZ && 'True' || 'False' }}
+          EXPORT_CBZ: ${{ inputs.EXPORT_CBZ }}
         run: |
           python ./src/main.py
           git add ./data/downloaded.db
@@ -84,8 +92,10 @@ jobs:
             comics_cbz/
           # 压缩包90天后会被清除
           retention-days: 90
+      # 发送邮件
       - name: send email
-        if: ${{ inputs.SEND_EMAIL }}
+        # 上方SEND_EMAIL环境变量取值不为True时,该step会被跳过运行
+        if: env.SEND_EMAIL == 'True'
         env:
           EMAIL_ACCOUNT: ${{secrets.EMAIL_ACCOUNT}}
           EMAIL_AUTH_CODE: ${{secrets.EMAIL_AUTH_CODE}}
@@ -100,9 +110,9 @@ jobs:
         run: |
           sudo apt-get install -y p7zip-full p7zip-rar
           python ./src/sendEmail.py
-          echo '如果不需要邮件推送的功能,可以将上一行代码注释掉     首次运行时也建议注释,排行榜上的漫画都没推送过,邮箱接受不了大量的漫画,等首次运行结束后再开启'
+      #提交并上传下载记录到仓库
       - name: commit & push
-        if : ${{ inputs.COMMIT_AND_UPLOAD }}
+        if: env.COMMIT_AND_UPLOAD == 'True'
         uses: actions-go/push@master
         with:
           author-email: 'actions@github.com'

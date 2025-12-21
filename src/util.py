@@ -110,18 +110,23 @@ def split_zip(source_dir, target_dir, output_name, block_size=50):
     """
    用7z命令行实现的分卷压缩, git actions工作流中有安装7z的命令
    """
+    if not os.listdir(source_dir):
+        return []
+
     if not block_size:
         block_size = int(os.environ["EMAIL_ATTACH_SIZE"]) - 1
     if not os.path.exists(target_dir):
         os.mkdir(target_dir)
-    #单个压缩包的大小(MB)
+    # 单个压缩包的大小(MB)
     size_Mbit = block_size * 1024 * 1024
 
-    #切换到源目录调用7z命令行
+    # 当前工作目录
+    cwd = os.getcwd()
+    # 切换到源目录调用7z命令行,压缩完毕后跳转回当前工作目录
     os.chdir(source_dir)
     cmd = ['7z', 'a', '-tzip', f'-v{size_Mbit}', f'{output_name}.zip', '-r']
     subprocess.run(cmd, check=True, capture_output=True, text=True)
-    os.chdir('..')
+    os.chdir(cwd)
 
     # 构建搜索模式（不区分大小写）
     pattern = os.path.join(source_dir, f"{output_name}.zip*")
