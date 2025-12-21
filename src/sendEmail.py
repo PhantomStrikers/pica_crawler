@@ -13,6 +13,12 @@ if not os.path.exists("./zips"):
     os.mkdir('./zips')
 split_zip("./comics", "./zips", 'pica')
 
+if os.path.exists("./comics_pdf"):
+    split_zip("./comics_pdf", "./zips", 'pica_pdf')
+
+if os.path.exists("./comics_cbz"):
+    split_zip("./comics_cbz", "./zips", 'pica_cbz')
+
 zips = os.listdir('./zips')
 for i in range(len(os.listdir('./zips'))):
     smtpObj = smtplib.SMTP(os.environ["EMAIL_SERVER_HOST"], os.environ["EMAIL_SERVER_PORT"])

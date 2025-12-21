@@ -4,5 +4,7 @@ __pycache__
 logs/*
 output/*
 comics/*
+comics_pdf/*
+comics_cbz/*
 .vscode
 .env

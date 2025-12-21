@@ -142,7 +142,7 @@ def split_zip(source_dir, target_dir, output_name, block_size=50):
     return moved_files
 
 
-def zip_file(source_dir, target_dir, block_size=None):
+def zip_file(source_dir, target_dir, block_size=None, prefix=""):
     if not block_size:
         block_size = int(os.environ["EMAIL_ATTACH_SIZE"]) - 1
     if not os.path.exists(target_dir):
@@ -173,7 +173,7 @@ def zip_file(source_dir, target_dir, block_size=None):
                 #压缩包不存在则创建
                 if not operator.contains(createVar, var_index):
                     createVar[var_index] = zipfile.ZipFile(
-                        os.path.join(target_dir, var_index + ".zip"), 
+                        os.path.join(target_dir, prefix + var_index + ".zip"), 
                         'w', 
                         zipfile.ZIP_DEFLATED
                     )

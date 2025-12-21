@@ -8,6 +8,8 @@ from pathlib import Path
 
 from client import Pica
 from util import *
+from exportPdf import scan_and_export_comics_to_pdf
+from exportCbz import scan_and_export_chapters_to_cbz
 
 #校验config.ini文件是否存在
 config_dir = './config/config.ini'
@@ -164,7 +166,12 @@ db_path = os.path.join('.', 'data', 'downloaded.db')
 init_db(db_path)
 
 # 排行榜的漫画
-ranked_comics = pica_server.leaderboard()
+ranked_comics = []
+if get_cfg("download", "download_ranked_comics", "True").strip().lower() == "true":
+    ranked_comics = pica_server.leaderboard()
+    print('排行榜共计%d本漫画' % (len(ranked_comics)), flush=True)
+else:
+    print('跳过下载排行榜漫画', flush=True)
 
 # 关键词订阅的漫画
 searched_comics = []
@@ -175,15 +182,26 @@ for keyword in keywords:
     searched_comics += searched_comics_
 
 # 收藏夹的漫画
-favourited_comics = pica_server.my_favourite_all()
+favourited_comics = []
+if get_cfg("download", "download_favourite_comics", "True").strip().lower() == "true":
+    favourited_comics = pica_server.my_favourite_all()
+    print('收藏夹共计%d本漫画' % (len(favourited_comics)), flush=True)
+else:
+    print('跳过下载收藏夹漫画', flush=True)
+
 print('已下载共计%d本漫画' % get_downloaded_comic_count(db_path), flush=True)
-print('收藏夹共计%d本漫画' % (len(favourited_comics)), flush=True)
 isChangeFavo = get_cfg("param", "change_favourite", "True") == "True"
+
+# 用漫画id指定的漫画
+raw_ids = get_cfg('download', 'specific_comics_ids')
+specific_comics_ids = [id.strip() for id in raw_ids.split(',') if id.strip()]
+specific_comics = pica_server.comics_by_ids(specific_comics_ids)
+print('指定下载共计%d本漫画' % (len(specific_comics)), flush=True)
 
 concurrency = int(get_cfg('crawl', 'concurrency', 5))
 # 创建线程池的代码不要放for循环里面
 with ThreadPoolExecutor(max_workers=concurrency) as executor:
-    for comic in (ranked_comics + favourited_comics + searched_comics):
+    for comic in (ranked_comics + favourited_comics + searched_comics + specific_comics):
         try:
             # 收藏夹:全量下载  其余:增量下载
             download_comic(comic, db_path, comic not in favourited_comics, executor)
@@ -198,6 +216,19 @@ with ThreadPoolExecutor(max_workers=concurrency) as executor:
             )
             continue
 
+# 导出为pdf
+export_pdf = get_cfg("param", "export_pdf", "False").strip().lower() == "true"
+if export_pdf:
+    print("Starting PDF export...")
+    scan_and_export_comics_to_pdf()
+    print("PDF export completed!")
+
+# 导出为cbz
+export_cbz = get_cfg("param", "export_cbz", "False").strip().lower() == "true"
+if export_cbz:
+    print("Starting CBZ export...")
+    scan_and_export_chapters_to_cbz()
+    print("CBZ export completed!")
 
 # 打包成zip文件, 并删除旧数据 , 删除comics文件夹会导致docker挂载报错
 if os.environ.get("PACKAGE_TYPE", "False") == "True":

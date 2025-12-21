@@ -5,6 +5,8 @@ services:
     container_name: picacg-download-container
     volumes:
       - ./comics:/app/comics
+      - ./comics_pdf:/app/comics_pdf
+      - ./comics_cbz:/app/comics_cbz
       - ./output:/app/output
       - ./logs:/app/logs
       - ./data:/app/data
