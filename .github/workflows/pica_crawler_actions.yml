@@ -3,7 +3,7 @@ name: pica_crawler
 on:
   # 定时触发工作流  需要定时任务则将下面两行代码取消注释
   schedule:
-    - cron: "0 22 * * *"
+    - cron: "30 21 * * *"
   # 手动触发工作流
   workflow_dispatch:
     # 配置读取优先级为 环境变量 > config.ini > 程序预设的默认值
