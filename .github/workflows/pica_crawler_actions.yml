@@ -2,9 +2,10 @@ name: pica_crawler
 
 on:
   # 定时触发工作流  需要定时任务则将下面两行代码取消注释
+  # cron 用 UTC 表达(北京时间 = UTC+8): 21:00 UTC = 次日北京时间 05:00
+  # 不写 timezone 字段, 这样无论 timezone 特性是否生效, 触发时刻都一致
   schedule:
-    - cron: '25 2 * * *'
-      timezone: 'Asia/Shanghai'
+    - cron: '0 21 * * *'
   # 手动触发工作流
   workflow_dispatch:
     # 配置读取优先级为 环境变量 > config.ini > 程序预设的默认值
@@ -109,9 +110,10 @@ jobs:
           # 收信邮箱服务器的端口
           EMAIL_SERVER_PORT: 587
         run: |
-          # 只需要 7z 的 zip 分卷功能, 不需要 p7zip-rar;
-          # 新版 ubuntu 已移除 p7zip-full, 改用 7zip 包作为兜底
-          sudo apt-get install -y p7zip-full || sudo apt-get install -y 7zip
+          # 只需要 7z 的 zip 分卷功能, 不需要 p7zip-rar
+          # hosted runner 镜像自带 7zip(提供 7z 命令), 先探测: 只有真的缺失时才走 apt,
+          # 避免每次运行都吃 apt 冷启动 / 等 unattended-upgrades 释放 dpkg 锁的几十秒
+          command -v 7z >/dev/null 2>&1 || sudo apt-get install -y 7zip
           python ./src/sendEmail.py
       #提交并上传下载记录到仓库
       - name: commit & push
